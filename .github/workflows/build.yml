@@ -44,6 +44,49 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      - name: Set app icon (آپ کی تصویر)
+        run: |
+          pip install pillow
+          python3 - <<'PY'
+          import os
+          from PIL import Image, ImageDraw
+          src = None
+          for c in ["www/icons/logo.png", "www/icons/icon-512.png", "www/icons/profile.png"]:
+              if os.path.exists(c):
+                  src = c
+                  break
+          if src is None:
+              raise SystemExit("logo not found in www/icons")
+          im = Image.open(src).convert("RGBA")
+          w, h = im.size
+          m = min(w, h)
+          im = im.crop(((w - m) // 2, (h - m) // 2, (w - m) // 2 + m, (h - m) // 2 + m))
+          def circle(img, size):
+              big = img.resize((size * 4, size * 4), Image.LANCZOS)
+              mask = Image.new("L", big.size, 0)
+              ImageDraw.Draw(mask).ellipse((0, 0, big.size[0] - 1, big.size[1] - 1), fill=255)
+              big.putalpha(mask)
+              return big.resize((size, size), Image.LANCZOS)
+          res = "android/app/src/main/res"
+          dens = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
+          for d, px in dens.items():
+              folder = f"{res}/mipmap-{d}"
+              os.makedirs(folder, exist_ok=True)
+              legacy = circle(im, px)
+              legacy.save(f"{folder}/ic_launcher.png")
+              legacy.save(f"{folder}/ic_launcher_round.png")
+              fg = px * 108 // 48
+              canvas = Image.new("RGBA", (fg, fg), (0, 0, 0, 0))
+              inner = circle(im, int(fg * 0.66))
+              off = (fg - inner.size[0]) // 2
+              canvas.paste(inner, (off, off), inner)
+              canvas.save(f"{folder}/ic_launcher_foreground.png")
+          os.makedirs(f"{res}/values", exist_ok=True)
+          open(f"{res}/values/ic_launcher_background.xml", "w").write(
+              '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#FFFFFF</color>\n</resources>\n')
+          print("icons done from", src)
+          PY
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug
