@@ -1,37 +1,44 @@
-name: Build Android APK
+name: Build APK
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Set up Java JDK
-        uses: actions/setup-java@v3
+      - uses: actions/setup-node@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          node-version: 20
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - uses: actions/setup-java@v4
         with:
-          flutter-version: '3.x'
-          channel: 'stable'
+          distribution: temurin
+          java-version: 17
 
-      - name: Get Dependencies
-        run: flutter pub get
+      - name: Prepare web files
+        run: |
+          mkdir www
+          cp -r index.html manifest.json sw.js favicon.png icons www/
 
-      - name: Build APK
-        run: flutter build apk --release
+      - name: Create Android project
+        run: |
+          npm init -y
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6
+          npx cap init "MSF Zindagi Ki Usool" com.msf.zindagikiusool --web-dir www
+          npx cap add android
+          npx cap sync android
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v3
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
-          name: app-release
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: MSF-Zindagi-Ki-Usool-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
