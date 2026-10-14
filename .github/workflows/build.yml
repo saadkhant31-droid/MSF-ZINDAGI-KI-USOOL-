@@ -22,8 +22,19 @@ jobs:
 
       - name: Prepare web files
         run: |
-          mkdir www
-          cp -r index.html manifest.json sw.js favicon.png icons www/
+          shopt -s nullglob
+          for z in *.zip; do unzip -o "$z" -d extracted_zip; done
+          INDEX=$(find . -name index.html -not -path "./node_modules/*" -not -path "./www/*" -not -path "./android/*" | head -n 1)
+          if [ -z "$INDEX" ]; then echo "index.html کہیں نہیں ملی"; ls -R; exit 1; fi
+          SRC=$(dirname "$INDEX")
+          echo "App folder: $SRC"
+          mkdir -p www
+          if [ "$SRC" = "." ]; then
+            cp -r index.html manifest.json sw.js favicon.png icons www/
+          else
+            cp -r "$SRC"/. www/
+          fi
+          ls -R www | head -30
 
       - name: Create Android project
         run: |
