@@ -12,6 +12,13 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      - name: Unzip project if repo only has a zip
+        run: |
+          if [ -z "$(find . -name settings.gradle -not -path './.git/*' | head -1)" ]; then
+            z=$(ls *.zip 2>/dev/null | head -1)
+            if [ -n "$z" ]; then echo "Unzipping $z"; unzip -q -o "$z"; fi
+          fi
+
       - name: Find project folder
         id: proj
         run: |
