@@ -12,6 +12,15 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      - name: Find project folder
+        id: proj
+        run: |
+          f=$(find . -name settings.gradle -not -path './.git/*' | head -1)
+          if [ -z "$f" ]; then echo "settings.gradle not found"; ls -R | head -50; exit 1; fi
+          d=$(dirname "$f")
+          echo "Project folder: $d"
+          echo "dir=$d" >> "$GITHUB_OUTPUT"
+
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
@@ -24,12 +33,12 @@ jobs:
           gradle-version: '8.7'
 
       - name: Build APK
-        working-directory: ZaatiRecordAndroid
+        working-directory: ${{ steps.proj.outputs.dir }}
         run: gradle assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Meri-Zindagi-Ka-Zaati-Record-MSF
-          path: ZaatiRecordAndroid/app/build/outputs/apk/debug/*.apk
+          path: ${{ steps.proj.outputs.dir }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
