@@ -19,10 +19,20 @@ jobs:
       - name: Find project folder
         id: p
         run: |
-          echo "=== repo files ==="
-          find . -maxdepth 3 -not -path './.git*' | sort
-          f=$(find . -maxdepth 3 \( -name 'settings.gradle' -o -name 'settings.gradle.kts' \) | head -1)
-          echo "found: [$f]"
+          f=$(find . -maxdepth 4 \( -name settings.gradle -o -name settings.gradle.kts \) -not -path './.git/*' | head -1)
+          if [ -z "$f" ]; then
+            z=$(find . -maxdepth 2 -name '*.zip' -not -path './.git/*' | head -1)
+            if [ -n "$z" ]; then
+              echo "zip mili: $z - extract kar raha hoon"
+              mkdir -p _unzipped && unzip -q -o "$z" -d _unzipped
+              f=$(find _unzipped -maxdepth 4 \( -name settings.gradle -o -name settings.gradle.kts \) | head -1)
+            fi
+          fi
+          if [ -z "$f" ]; then
+            echo "::error::settings.gradle.kts repo me nahi mili. Files ki fehrist:"
+            find . -maxdepth 3 -not -path './.git*' | sort
+            exit 1
+          fi
           echo "dir=$(dirname "$f")" >> "$GITHUB_OUTPUT"
       - name: Build debug APK
         working-directory: ${{ steps.p.outputs.dir }}
