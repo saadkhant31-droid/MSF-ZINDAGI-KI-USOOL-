@@ -16,23 +16,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
+      - name: Find project folder
+        id: p
+        run: |
+          f=$(find . -maxdepth 3 -name 'settings.gradle*' | head -1)
+          echo "dir=$(dirname "$f")" >> "$GITHUB_OUTPUT"
       - name: Build debug APK
+        working-directory: ${{ steps.p.outputs.dir }}
         run: gradle assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
         with:
-          name: MSF-RamadanulMubarak-Record-APK
-          path: app/build/outputs/apk/debug/*.apk
-
-      # Profile + icons ka source code bhi alag artifact me
-      - name: Collect profile and icons code
-        run: |
-          mkdir -p profile-icons-code/res
-          cp app/src/main/java/com/msf/ramadanrecord/ProfileActivity.kt profile-icons-code/
-          cp app/src/main/java/com/msf/ramadanrecord/SettingsUi.kt profile-icons-code/
-          cp -r app/src/main/res/drawable profile-icons-code/res/
-          cp -r app/src/main/res/drawable-nodpi profile-icons-code/res/
-          cp -r app/src/main/res/mipmap-* profile-icons-code/res/
-      - uses: actions/upload-artifact@v4
-        with:
-          name: MSF-Profile-and-Icons-Code
-          path: profile-icons-code
+          name: App-APK
+          path: ${{ steps.p.outputs.dir }}/app/build/outputs/apk/debug/*.apk
